@@ -1,0 +1,78 @@
+## 1. Crear Máquina Virtual
+
+Se crea una máquina virtual con las siguientes características:
+
+- **Nombre**: `RO-VPN`
+- **Sistema Operativo**: Debian 12 ARM
+- **Memoria RAM**: 1 GB
+usuario: azure
+pwd: Chinchillas24$
+
+## 2. Configurar el Grupo de Seguridad de Red (NSG)
+
+Se permite el tráfico **UDP** en el **puerto 51820** (puerto por defecto de WireGuard).
+
+### Crear regla en el NSG:
+
+```bash
+az network nsg rule create \
+  --resource-group RO-VPN_group \
+  --nsg-name RO-VPN-nsg \
+  --name RO-VPN \
+  --protocol udp \
+  --priority 200 \
+  --destination-port-range 51820
+```
+
+### Asociar NSG a la interfaz de red de la VM:
+
+```bash
+az network nic update \
+  --resource-group RO-VPN_group \
+  --name ro-vpn203 \
+  --network-security-group RO-VPN-nsg
+```
+
+## 3. Instalar PiVPN (WireGuard)
+
+Primero Accede a la VM a través de SSH
+
+```sh
+ssh azure@<ip>
+```
+
+y ejecuta los siguientes comandos para instalar PiVPN con soporte para WireGuard:
+
+```bash
+sudo apt update && sudo apt upgrade
+curl -L https://install.pivpn.io | bash
+```
+
+## 4. Gestión de Usuarios y Conexiones
+
+### Agregar un nuevo usuario:
+
+```bash
+pivpn add
+```
+
+### Obtener el archivo de configuración:
+
+- En forma de código QR para escanear desde el cliente móvil:
+
+```bash
+pivpn -qr
+```
+
+- Archivo `.conf` disponible en: `~/configs/`
+se puede copiar al cliente con
+```
+scp azure@<ip>:~/configs/`wgUser.conf` ~/
+```
+
+### Ver usuarios conectados:
+
+```bash
+pivpn -c
+```
+
