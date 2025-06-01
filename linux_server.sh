@@ -5,27 +5,36 @@ set -e
 #  actualizar el sistema para instalar dependencias
 sudo apt update && sudo apt -y upgrade
 
+# sudo hostnamectl set-hostname  alphal2
+
 # Poner ip fija en debian
 #### https://www.debian.org/doc/manuals/debian-reference/ch05.en.html
 #### https://wiki.debian.org/NetworkConfiguration
 
+# poner dns de AD en resolv.conf
+sudo systemctl disable --now systemd-resolved ## para poder usar resolv.conf
+sudo rm -f /etc/resolv.conf
+echo -e "nameserver 192.168.1.10\nnameserver 1.1.1.1" | sudo tee /etc/resolv.conf
+
 INTERFACE="enp0s3"
 IP_ADDRESS="192.168.1.11/24"
-# sophos firewall
+# sophos firewall como gateway
 GATEWAY="192.168.1.69"
-DNS="1.1.1.1"
-
+GATEWAY2="192.168.1.254"
+DNS1="192.168.1.10"
+DNS2="1.1.1.1"
 sudo tee /etc/systemd/network/10-static.network > /dev/null <<EOF
 [Match]
 Name=$INTERFACE
 
 [Network]
 Address=$IP_ADDRESS
-Gateway=$GATEWAY
-DNS=$DNS
+Gateway=$GATEWAY1
+Gateway=$GATEWAY2
+DNS=$DNS1
+DNS=$DNS2
 EOF
-
-sudo systemctl enable systemd-networkd --now
+sudo systemctl enable systemd-networkd --now ## para poder usar systemd-networkd
 sudo systemctl restart systemd-networkd
 sudo systemctl disable --now NetworkManager || true
 
@@ -64,6 +73,22 @@ else # ambos por si las flais
         chmod 600 ~/.ssh/config
     fi
 fi
+
+# REQUISITO: Conección a directorio activo (LDAP)
+#### https://wiki.debian.org/AuthenticatingLinuxWithActiveDirectorySssd
+#### https://documentation.ubuntu.com/server/how-to/sssd/with-active-directory/index.html
+#### https://www.baeldung.com/linux/active-directory-authenticate-users
+#### https://www.linkedin.com/pulse/how-join-linux-machine-active-directory-ad-domain-mohsen-rizkallah-36pkf/
+#### https://youtu.be/UhYzoyQXXMA?si=2VIpN7OYZsmPvvNm&t=126
+#### https://docs.redhat.com/es/documentation/red_hat_enterprise_linux/8/html/deploying_different_types_of_servers/assembly_setting-up-samba-as-an-ad-domain-member-server_assembly_using-samba-as-a-server
+#### https://documentation.ubuntu.com/server/how-to/samba/member-server-in-an-ad-domain/index.html
+
+
+sudo apt install -y realmd libnss-sss libpam-sss libpam-runtime sssd sssd-tools adcli samba-common-bin oddjob oddjob-mkhomedir packagekit
+export PATH=$PATH:/usr/sbin
+
+sudo realm join -v --membership-software=samba dreamteam.local -U Administrator # nos pedirá la contraseña del Administrator de AD
+pam-auth-update --enable mkhomedir 
 
 # REQUISITO: Servidor Web (Apache)   
 #### https://ubuntu.com/tutorials/install-and-configure-apache#1-overview
@@ -105,16 +130,17 @@ sudo chown -R www-data:www-data /var/www/html/nextcloud
 # ir a http://localhost/nextcloud y configurar la base de datos
 # y activar ldap http://localhost/nextcloud/index.php/settings/apps/disabled/user_ldap
 
-# REQUISITO: Conección a directorio activo (LDAP)
-#### https://docs.nextcloud.com/server/latest/admin_manual/configuration_user/user_auth_ldap.html
-#### https://wiki.debian.org/AuthenticatingLinuxWithActiveDirectorySssd
+# REQUISITO: LDAP/AD en nextcloud
 #### https://www.bujarra.com/integrando-nextcloud-con-el-directorio-activo/?lang=en
+#### https://docs.nextcloud.com/server/latest/admin_manual/configuration_user/user_auth_ldap.html
+
 
 #se configurar el acceso a LDAP/AD desde http://localhost/nextcloud/index.php/settings/admin/ldap
 # ldap://192.168.1.10 puerto 389
-# cn=Administrator,ou=Usuarios,dc=dreamteam,dc=local
+# cn=Administrator,cn=Users,dc=dreamteam,dc=local
 # Chinchillas24$
-# cn=Administrator,ou=Usuarios,dc=dreamteam,dc=local
+# DC=dreamteam,DC=local
+
 # REQUISITO: cliente SMB
 #### https://ubuntu.com/tutorials/install-and-configure-samba#1-overview
 #### https://www.redhat.com/en/blog/samba-windows-linux

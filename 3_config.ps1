@@ -57,6 +57,19 @@ New-ADGroup -Name "TI_Grupo" -GroupScope Global -GroupCategory Security -Path "O
 #### https://learn.microsoft.com/en-us/powershell/module/activedirectory/new-aduser
 #### https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/convertto-securestring
 #### https://learn.microsoft.com/en-us/powershell/module/activedirectory/add-adgroupmember
+
+# Create a new user named nextcloud in the Users container
+$nextcloudPassword = ConvertTo-SecureString "Chinchillas24$" -AsPlainText -Force
+New-ADUser -Name "nextcloud" `
+           -SamAccountName "nextcloud" `
+           -UserPrincipalName "nextcloud@dreamteam.local" `
+           -AccountPassword $nextcloudPassword `
+           -Path "CN=Users,DC=dreamteam,DC=local" `
+           -Enabled $true
+
+# Add nextcloud to the TI_Grupo group
+Add-ADGroupMember -Identity "TI_Grupo" -Members "nextcloud"
+
 foreach ($user in $usuarios.Keys) {
     $securePass = ConvertTo-SecureString $usuarios[$user] -AsPlainText -Force
     New-ADUser -Name $user `
@@ -94,19 +107,24 @@ Set-DhcpServerv4OptionValue -OptionId 6 -Value ([IPAddress]$ServerIP)
 #### https://learn.microsoft.com/en-us/powershell/module/grouppolicy/set-gpregistryvalue?view=windowsserver2025-ps
 # Lista de GPOs a crear
 $gpos = @(
+    "GPO_ComplexityPassword",
+    "GPO_ExpirationPassword",
     "GPO_USB",
     "GPO_ProtectorPantalla",
     "GPO_BloqueoCopilot",
     "GPO_RedirCarpetas",
     "GPO_BloqueoPanelControl",
     "GPO_Autorun",
-    "GPO_BloqueoTareasProgramadas"
+    "GPO_BloqueoTareasProgramadas",
+    "GPO_BloqueoConfiguracionWindows"
 )
 
 foreach ($gpo in $gpos) {
     New-GPO -Name $gpo
     New-GPLink -Name $gpo -Target "OU=Usuarios,DC=dreamteam,DC=local"
 }
+
+
 
 # 3. Bloqueo de USB
 #### https://answers.microsoft.com/en-us/windows/forum/all/enablingdisabling-usb/35d2fbf3-ed12-4cb8-88ed-840012de9050
@@ -118,11 +136,11 @@ Set-GPRegistryValue -Name "GPO_USB" -Key "HKLM\SYSTEM\CurrentControlSet\Services
 Set-GPRegistryValue -Name "GPO_ProtectorPantalla" -Key "HKCU\Control Panel\Desktop" -ValueName "ScreenSaveTimeOut" -Type String -Value "120"
 Set-GPRegistryValue -Name "GPO_ProtectorPantalla" -Key "HKCU\Control Panel\Desktop" -ValueName "ScreenSaverIsSecure" -Type String -Value "1"
 
-# 6. Bloqueo de Copilot
+# 5. Bloqueo de Copilot
 #### https://github.com/NathanOrdSec/DisableWindowsCopilot
 Set-GPRegistryValue -Name "GPO_BloqueoCopilot" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot" -ValueName "TurnOffWindowsCopilot" -Type DWord -Value 1
 
-# 7. Redirección de carpeta Documentos
+# 6. Redirección de carpeta Documentos
 #### https://answers.microsoft.com/en-us/windows/forum/all/change-registry-values-of-user-shell-folders-some/7c9a133d-91f4-4f1b-9d8f-f7b7d4be5959
 #### https://www.winhelponline.com/blog/windows-10-shell-folders-paths-defaults-restore/
 Set-GPRegistryValue -Name "GPO_RedirCarpetas" `
@@ -131,15 +149,41 @@ Set-GPRegistryValue -Name "GPO_RedirCarpetas" `
     -Type ExpandString `
     -Value "\\$ServerIP\Compartido"
 
-# 8. Bloqueo del Panel de Control
+# 7. Bloqueo del Panel de Control
 #### https://activedirectorypro.com/restrict-control-panel-access-using-group-policy/
 Set-GPRegistryValue -Name "GPO_BloqueoPanelControl" -Key "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -ValueName "NoControlPanel" -Type DWord -Value 1
 
-# 9. Deshabilitar Autorun
+# 8. Deshabilitar Autorun
 #### https://learn.microsoft.com/en-us/windows/win32/shell/autoplay-reg
 Set-GPRegistryValue -Name "GPO_Autorun" -Key "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" -ValueName "NoDriveTypeAutoRun" -Type DWord -Value 255
 
-# 10. 
+# 9. bloqueo de Tareas Programadas
 #### https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-admx-mmc
 Set-GPRegistryValue -Name "GPO_BloqueoTareasProgramadas" -Key "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\MMC\{c7f7e1f5-f63c-11d3-90db-00c04f68873c}" -ValueName "Restrict_Run" -Type DWord -Value 1
 
+# 10. Deshabilitar el acceso a la configuración de Windows
+Set-GPRegistryValue -Name "GPO_BloqueoConfiguracionWindows" -Key "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" -ValueName "NoSettings" -Type DWord -Value 1
+
+
+
+## ldap 
+#### https://forum.netgate.com/topic/187453/ldap-authentication-with-active-directory-windows-server-2025-bind-fails/3
+#### https://learn.microsoft.com/en-us/troubleshoot/windows-server/active-directory/enable-ldap-signing-in-windows-server
+
+# LDAP Server channel binding token requirements: "When Supported" (1)
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\NTDS\Parameters" /v "LDAPEnforceChannelBinding" /t REG_DWORD /d 1 /f
+
+# LDAP server signing requirements: "None" (0)
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\NTDS\Parameters" /v "LDAPServerIntegrity" /t REG_DWORD /d 0 /f
+
+# LDAP server enforce signing: "Disabled" (ya manejado por el de arriba)
+
+# LDAP client encryption requirements: "Negotiate Sealing" (0)
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "LdapClientIntegrity" /t REG_DWORD /d 0 /f
+
+# LDAP client signing requirements: "Negotiate Signing" (1)
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "LdapClientSigningRequirements" /t REG_DWORD /d 1 /f
+
+Restart-Computer -Force # reinicio requerido
+
+# https://support.microsoft.com/en-us/topic/client-service-and-program-issues-can-occur-if-you-change-security-settings-and-user-rights-assignments-0cb6901b-dcbf-d1a9-e9ea-f1b49a56d53a

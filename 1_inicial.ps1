@@ -4,6 +4,10 @@
 #### https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/rename-computer?view=powershell-7.5
 Rename-Computer -NewName "AlphaWOS1"
 
+# zona horaria 
+#### https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/set-timezone?view=powershell-7.5
+Set-TimeZone -Id "Central Standard Time (Mexico)"
+
 # Ip fija
 #### https://learn.microsoft.com/en-us/windows-server/administration/server-core/server-core-administer#set-a-static-ip-address
 New-NetIPAddress -InterfaceAlias "Ethernet" -IPAddress 192.168.1.10 -PrefixLength 24 -DefaultGateway 192.168.1.254
