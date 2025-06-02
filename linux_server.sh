@@ -88,7 +88,7 @@ sudo apt install -y realmd libnss-sss libpam-sss libpam-runtime sssd sssd-tools 
 export PATH=$PATH:/usr/sbin
 
 sudo realm join -v --membership-software=samba dreamteam.local -U Administrator # nos pedirá la contraseña del Administrator de AD
-pam-auth-update --enable mkhomedir 
+sudo pam-auth-update --enable mkhomedir 
 
 # REQUISITO: Servidor Web (Apache)   
 #### https://ubuntu.com/tutorials/install-and-configure-apache#1-overview
@@ -133,7 +133,7 @@ sudo chown -R www-data:www-data /var/www/html/nextcloud
 # REQUISITO: LDAP/AD en nextcloud
 #### https://www.bujarra.com/integrando-nextcloud-con-el-directorio-activo/?lang=en
 #### https://docs.nextcloud.com/server/latest/admin_manual/configuration_user/user_auth_ldap.html
-
+#### https://www.youtube.com/watch?v=GW5_iO8FoqU
 
 #se configurar el acceso a LDAP/AD desde http://localhost/nextcloud/index.php/settings/admin/ldap
 # ldap://192.168.1.10 puerto 389
