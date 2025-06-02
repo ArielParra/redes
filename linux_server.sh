@@ -5,7 +5,8 @@ set -e
 #  actualizar el sistema para instalar dependencias
 sudo apt update && sudo apt -y upgrade
 
-# sudo hostnamectl set-hostname  alphal2
+# poner nombre de host
+# sudo hostnamectl set-hostname alphal2
 
 # Poner ip fija en debian
 #### https://www.debian.org/doc/manuals/debian-reference/ch05.en.html
@@ -37,6 +38,35 @@ EOF
 sudo systemctl enable systemd-networkd --now ## para poder usar systemd-networkd
 sudo systemctl restart systemd-networkd
 sudo systemctl disable --now NetworkManager || true
+
+
+# poner ip fija en ubuntu
+#### https://ubuntu.com/server/docs/network-configuration
+
+#INTERFACE="enp0s3"
+#IP_ADDRESS="192.168.1.19/24"
+#GATEWAY="192.168.1.69"
+#GATEWAY2="192.168.1.254"
+#DNS1="192.168.1.10"
+#DNS2="1.1.1.1"
+#sudo tee /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
+#network:
+#  version: 2
+#  renderer: NetworkManager
+#  ethernets:
+#    enp0s3:
+#      dhcp4: no
+#      addresses:
+#        - $IP_ADDRESS
+#      nameservers:
+#        addresses:
+#          - $DNS1
+#          - $DNS2
+#      routes:
+#        - to: 0.0.0.0/0
+#          via: $GATEWAY
+#EOF
+# sudo netplan apply
 
 # REQUISITO: Acceso activo por SSH
 #### https://documentation.ubuntu.com/server/how-to/security/openssh-server/index.html
