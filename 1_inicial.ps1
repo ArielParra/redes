@@ -2,7 +2,7 @@
 
 # Nombre PC cliente
 #### https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/rename-computer?view=powershell-7.5
-Rename-Computer -NewName "AlphaWOS1"
+Rename-Computer -NewName "AlphaWOS1" -Restart
 
 # zona horaria 
 #### https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/set-timezone?view=powershell-7.5
@@ -13,6 +13,7 @@ Set-TimeZone -Id "Central Standard Time (Mexico)"
 New-NetIPAddress -InterfaceAlias "Ethernet" -IPAddress 192.168.1.10 -PrefixLength 24 -DefaultGateway 192.168.1.254
 
 # Configurar gateway predeterminado (gateway Sofos)
+Remove-NetRoute -InterfaceAlias "Ethernet" -DestinationPrefix "0.0.0.0/0" 
 New-NetRoute -InterfaceAlias "Ethernet" -DestinationPrefix "0.0.0.0/0" -NextHop "192.168.1.69"
 
 # Mostrar extensiones de archivo

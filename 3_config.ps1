@@ -68,7 +68,7 @@ New-ADUser -Name "nextcloud" `
            -Enabled $true
 
 # Add nextcloud to the TI_Grupo group
-Add-ADGroupMember -Identity "TI_Grupo" -Members "nextcloud"
+Add-ADGroupMember -Identity "TI_Grupo" -Members "Administrator"
 
 foreach ($user in $usuarios.Keys) {
     $securePass = ConvertTo-SecureString $usuarios[$user] -AsPlainText -Force
@@ -82,9 +82,19 @@ foreach ($user in $usuarios.Keys) {
     Add-ADGroupMember -Identity "TI_Grupo" -Members $user
 }
 
-# REQUERIMIENTO: Compartir archivos basado en AD (carpeta compartida)
-New-Item -Path "C:\Compartido" -ItemType Directory -Force
-New-SmbShare -Name "ArchivosTI" -Path "C:\Compartido" -FullAccess "TI_Grupo"
+# REQUERIMIENTO: Compartir archivos basado en AD (carpeta compartida) (samba)
+# Configurar permisos NTFS para la carpeta C:\Compartido
+$folderPath = "C:\Compartido"
+New-Item -Path $folderPath -ItemType Directory -Force
+New-SmbShare -Name "ArchivosTI" -Path $folderPath -FullAccess "TI_Grupo"
+Grant-SmbShareAccess -Name "ArchivosTI" -AccountName "Administrator" -AccessRight Full -Force
+Grant-SmbShareAccess -Name "ArchivosTI" -AccountName "TI_Grupo" -AccessRight Full -Force
+Grant-SmbShareAccess -Name "ArchivosTI" -AccountName "Everyone" -AccessRight Full -Force
+$acl = Get-Acl $folderPath
+$accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("TI_Grupo", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+$acl.SetAccessRule($accessRule)
+Set-Acl -Path $folderPath -AclObject $acl
+
 
 # REQUERIMIENTO: SFTP implementado (openSSH)
 #### https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse
@@ -123,8 +133,6 @@ foreach ($gpo in $gpos) {
     New-GPO -Name $gpo
     New-GPLink -Name $gpo -Target "OU=Usuarios,DC=dreamteam,DC=local"
 }
-
-
 
 # 3. Bloqueo de USB
 #### https://answers.microsoft.com/en-us/windows/forum/all/enablingdisabling-usb/35d2fbf3-ed12-4cb8-88ed-840012de9050

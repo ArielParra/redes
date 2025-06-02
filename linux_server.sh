@@ -135,28 +135,60 @@ sudo chown -R www-data:www-data /var/www/html/nextcloud
 #### https://docs.nextcloud.com/server/latest/admin_manual/configuration_user/user_auth_ldap.html
 #### https://www.youtube.com/watch?v=GW5_iO8FoqU
 
+
+# Crear archivo PHP para probar conexión LDAP
+sudo bash -c 'cat > ldap_test.php <<EOF
+<?php
+\$ldap_host = "ldap://192.168.1.10"; 
+\$ldap_port = 389;
+\$ldap_user = "cn=Administrator,cn=Users,dc=dreamteam,dc=local";
+\$ldap_pass = "Chinchillas24\$";
+
+\$ldap_conn = ldap_connect(\$ldap_host, \$ldap_port);
+
+if (!\$ldap_conn) {
+    die("❌ No se pudo conectar al servidor LDAP.\n");
+}
+
+ldap_set_option(\$ldap_conn, LDAP_OPT_PROTOCOL_VERSION, 3);
+ldap_set_option(\$ldap_conn, LDAP_OPT_REFERRALS, 0);
+
+if (ldap_bind(\$ldap_conn, \$ldap_user, \$ldap_pass)) {
+    echo "✅ Conexión LDAP exitosa.\n";
+} else {
+    echo "❌ Falló el bind LDAP: " . ldap_error(\$ldap_conn) . "\n";
+}
+
+ldap_close(\$ldap_conn);
+?>
+EOF'
+sudo ./ldap_test.php
+
 #se configurar el acceso a LDAP/AD desde http://localhost/nextcloud/index.php/settings/admin/ldap
 # ldap://192.168.1.10 puerto 389
 # cn=Administrator,cn=Users,dc=dreamteam,dc=local
 # Chinchillas24$
 # DC=dreamteam,DC=local
 
+# permitir acceso a localhost y a la red local
+sudo sed -i "/0 => 'localhost'/a\ \ \ \ 1 => '192.168.1.11',\n\ \ \ \ 2 => '192.168.1.*'," /var/www/nextcloud/config/config.php
+
 # REQUISITO: cliente SMB
 #### https://ubuntu.com/tutorials/install-and-configure-samba#1-overview
 #### https://www.redhat.com/en/blog/samba-windows-linux
 #### https://linuxize.com/post/how-to-mount-cifs-windows-share-on-linux/
+sudo apt update
+sudo apt install -y samba smbclient cifs-utils
+
 WIN_SERVER="192.168.1.10"
-SHARE_NAME="Compartido"
-MOUNT_POINT="/home/$USER/Compartido"
+SHARE_NAME="ArchivosTI"  # Nombre correcto del recurso compartido
+MOUNT_POINT="/Compartido"
 USERNAME="Administrator"
 PASSWORD="Chinchillas24$"
 DOMAIN="dreamteam"
 CRED_FILE="/etc/samba/credenciales"
 
-sudo apt update
-sudo apt install -y samba smbclient cifs-utils
-
-mkdir -p "$MOUNT_POINT"
+sudo mkdir -p "$MOUNT_POINT"
 
 sudo bash -c "cat > $CRED_FILE <<EOF
 username=$USERNAME
@@ -165,8 +197,8 @@ domain=$DOMAIN
 EOF"
 sudo chmod 600 $CRED_FILE
 
-FSTAB_ENTRY="//${WIN_SERVER}/${SHARE_NAME}  ${MOUNT_POINT}  cifs  credentials=${CRED_FILE},uid=$UID,gid=$(id -g),_netdev,vers=3.0  0  0"
-
+FSTAB_ENTRY="//${WIN_SERVER}/${SHARE_NAME}  ${MOUNT_POINT}  cifs  credentials=${CRED_FILE},uid=0,gid=0,file_mode=0777,dir_mode=0777,_netdev,vers=3.0  0  0"
 grep -qF "$FSTAB_ENTRY" /etc/fstab || echo "$FSTAB_ENTRY" | sudo tee -a /etc/fstab
 
 sudo mount -a
+sudo systemctl daemon-reload
