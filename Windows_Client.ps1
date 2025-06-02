@@ -28,3 +28,10 @@ foreach ($user in $usuarios) {
     $completeUser = "$dominio\$user"
     Add-LocalGroupMember -Group $groupo -Member $completeUser
 }
+
+# Configurar winget por primera vez
+winget settings set --source winget --enable --auto-accept-license
+# instalar microsip 
+winget install -e --id MicroSIP.MicroSIP.Lite
+# instalar wireguard
+winget install -e --id WireGuard.WireGuard

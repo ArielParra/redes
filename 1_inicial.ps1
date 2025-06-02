@@ -2,7 +2,7 @@
 
 # Nombre PC cliente
 #### https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/rename-computer?view=powershell-7.5
-Rename-Computer -NewName "AlphaWOS1" -Restart
+Rename-Computer -NewName "AlphaWOS1" # -Restart
 
 # zona horaria 
 #### https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/set-timezone?view=powershell-7.5

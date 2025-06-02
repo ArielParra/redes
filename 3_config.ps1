@@ -83,7 +83,8 @@ foreach ($user in $usuarios.Keys) {
 }
 
 # REQUERIMIENTO: Compartir archivos basado en AD (carpeta compartida) (samba)
-# Configurar permisos NTFS para la carpeta C:\Compartido
+#### https://learn.microsoft.com/en-us/windows-server/storage/file-server/file-server-smb-overview
+#### https://woshub.com/manage-windows-file-shares-with-powershell/
 $folderPath = "C:\Compartido"
 New-Item -Path $folderPath -ItemType Directory -Force
 New-SmbShare -Name "ArchivosTI" -Path $folderPath -FullAccess "TI_Grupo"

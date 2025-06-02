@@ -1,4 +1,3 @@
-# 3. SERVIDORES UNIX/LIKE UNIX
 #!/usr/bin/env sh
 set -e
 
@@ -232,3 +231,34 @@ grep -qF "$FSTAB_ENTRY" /etc/fstab || echo "$FSTAB_ENTRY" | sudo tee -a /etc/fst
 
 sudo mount -a
 sudo systemctl daemon-reload
+
+
+# REQUISITO: Replica DNS Maestro Local (bind9)
+
+sudo apt install -y bind9 bind9-utils
+
+ZONA="dreamteam.local"
+MAESTRO_IP="192.168.1.10"  # Cambia a la IP de tu DC
+ZONA_CACHE_FILE="/var/cache/bind/db.${ZONA}"
+BIND_CONF_DIR="/etc/bind"
+NAMED_LOCAL="${BIND_CONF_DIR}/named.conf.local"
+NAMED_OPTIONS="${BIND_CONF_DIR}/named.conf.options"
+
+sudo sed -i '/^options {/,/^};/d' "$NAMED_OPTIONS"
+
+echo "options {
+    directory \"/var/cache/bind\";
+
+    forwarders {
+        1.1.1.1;
+        8.8.8.8;
+    };
+
+    allow-query { any; };
+    recursion yes;
+    dnssec-validation auto;
+};" | sudo tee -a "$NAMED_OPTIONS"
+
+sudo systemctl restart bind9
+
+
