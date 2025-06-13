@@ -67,7 +67,6 @@ New-ADUser -Name "nextcloud" `
            -Path "CN=Users,DC=dreamteam,DC=local" `
            -Enabled $true
 
-# Add nextcloud to the TI_Grupo group
 Add-ADGroupMember -Identity "TI_Grupo" -Members "Administrator"
 
 foreach ($user in $usuarios.Keys) {
@@ -110,8 +109,11 @@ Add-Content -Path "C:\inetpub\wwwroot\index.html" -Value "<h1>Bienvenidos a Drea
 
 # REQUERIMIENTO: DHCP implementado
 #### https://learn.microsoft.com/en-us/windows-server/networking/technologies/dhcp/quickstart-install-configure-dhcp-server?tabs=powershell
+#### https://learn.microsoft.com/en-us/answers/questions/292887/dhcp-post-installation-wizard-with-powershell
 Add-DhcpServerv4Scope -Name "DreamTeam LAN" -StartRange 192.168.1.100 -EndRange 192.168.1.200 -SubnetMask 255.255.255.0 -State Active
 Set-DhcpServerv4OptionValue -OptionId 6 -Value ([IPAddress]$ServerIP)
+Add-DhcpServerInDC -DnsName "dreamteam.local" -IPAddress 192.168.1.10
+Set-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\ServerManager\Roles\12 -Name ConfigurationState -Value 2
 
 # REQUERIMIENTO: Aplicar al menos 10 políticas GPO
 #### https://learn.microsoft.com/en-us/powershell/module/grouppolicy/?view=windowsserver2025-ps
