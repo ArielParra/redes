@@ -232,6 +232,19 @@ grep -qF "$FSTAB_ENTRY" /etc/fstab || echo "$FSTAB_ENTRY" | sudo tee -a /etc/fst
 sudo mount -a
 sudo systemctl daemon-reload
 
+sudo bash -c 'cat >> /etc/samba/smb.conf <<EOF
+
+[ArchivosTI]
+    path = /Compartido
+    browseable = yes
+    writable = yes
+    guest ok = no
+    valid users = administrator
+    force user = root
+EOF'
+sudo systemctl restart smbd
+
+
 
 # REQUISITO: Replica DNS Maestro Local (bind9)
 
